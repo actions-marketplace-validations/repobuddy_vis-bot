@@ -1,9 +1,10 @@
 /**
  * Unit tests for the action entrypoint, src/main.ts
  */
+
+import * as github from '@actions/github'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as core from '../__fixtures__/core.js'
-import * as github from '@actions/github'
 
 const { mockRunSnapshotPrBot } = vi.hoisted(() => ({
 	mockRunSnapshotPrBot: vi.fn(),
@@ -73,6 +74,20 @@ describe('main.ts', () => {
 		expect(core.setOutput).toHaveBeenCalledWith('updated', 'true')
 		expect(core.setOutput).toHaveBeenCalledWith('pr-number', '3')
 		expect(core.setOutput).toHaveBeenCalledWith('commit-sha', 'abc')
+	})
+
+	it('sets skipped and logs the reason for a skipped run', async () => {
+		mockRunSnapshotPrBot.mockResolvedValue({
+			updated: false,
+			prNumber: undefined,
+			commitSha: undefined,
+			skippedReason: 'fork',
+		})
+		await run()
+		expect(core.setOutput).toHaveBeenCalledWith('skipped', 'true')
+		expect(core.setOutput).toHaveBeenCalledWith('updated', 'false')
+		expect(core.info).toHaveBeenCalledWith('Skipped: fork')
+		expect(core.setFailed).not.toHaveBeenCalled()
 	})
 
 	it('sets outputs when there are no changes', async () => {
